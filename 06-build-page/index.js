@@ -36,32 +36,23 @@ const writeFileAsync = async (path, data) => {
 
 const obj = {
     html: null,
-    '{{header}}': null,
-    '{{articles}}': null,
-    '{{footer}}': null,
 }
 
 readFileAsync(htmlPath)
     .then(data => obj.html = data)
+    .then(data => {
 
-    .then(() => readFileAsync(path.resolve(componentsPath, 'header.html')))
+        let str = data.match(/{{.*}}/gi)
+        return str.map(el => el.replace(/\W/gi, ''))
 
-    .then(data => obj['{{header}}'] = data)
-
-    .then(() => readFileAsync(path.resolve(componentsPath, 'articles.html')))
-
-    .then(data => obj['{{articles}}'] = data)
-
-    .then(() => readFileAsync(path.resolve(componentsPath, 'footer.html')))
-
-    .then(data => obj['{{footer}}'] = data)
-
-    .then(() => {
-        obj.html = obj.html.replace(/{{header}}/gi, obj['{{header}}'])
-        obj.html = obj.html.replace(/{{articles}}/gi, obj['{{articles}}'])
-        obj.html = obj.html.replace(/{{footer}}/gi, obj['{{footer}}'])
     })
-    .then(() => writeFileAsync(path.resolve(projectFolder, 'index.html'), obj.html))
+    .then((data) => {
+        return data.forEach((el) => {
+             readFileAsync(path.join(componentsPath, `${el}.html`))
+             .then(data => obj.html = obj.html.replace(`{{${el}}}`, data))
+             .then(() => writeFileAsync(path.resolve(projectFolder, 'index.html'), obj.html))
+         })
+    })
 
 const styleFolder = path.resolve(__dirname, 'styles')
 const destFolder = path.resolve(__dirname, 'project-dist', 'style.css')
@@ -87,27 +78,32 @@ fs.readdir(styleFolder, ((err, files) => {
                 return
             })
         })
-        
+
 
     })
 }))
 
 
 async function copyDir(src, dest) {
-    const entries = await FSP.readdir(src, { withFileTypes: true });
-    await FSP.mkdir(dest);
+    const entries = await FSP.readdir(src, { withFileTypes: true })
+    try {
+        await FSP.mkdir(dest)
+    } catch (error) {
+        error
+    }
+    
 
     for (let entry of entries) {
 
-        const srcPath = path.join(src, entry.name);
-        const destPath = path.join(dest, entry.name);
+        const srcPath = path.join(src, entry.name)
+        const destPath = path.join(dest, entry.name)
 
         if (entry.isDirectory()) {
 
-            await copyDir(srcPath, destPath);
+            await copyDir(srcPath, destPath)
         } else {
 
-            await FSP.copyFile(srcPath, destPath);
+            await FSP.copyFile(srcPath, destPath)
         }
     }
 }
