@@ -9,9 +9,11 @@ let rl = readline.createInterface({
     input: stdin,
     output: out,
 });
+console.log('Go some text');
 
 rl.on('line', (line) => {
-    if (line === '' || line === 'end') {
+    if (line === '' || line === 'exit') {
+        console.log('see you soon!');
         rl.close();
     } else {
         out.write(line + '\n');
