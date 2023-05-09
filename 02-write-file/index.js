@@ -1,21 +1,29 @@
 const fs = require('fs')
 const path = require('path')
 const readline = require('node:readline');
-const { stdin } = require('process');
 
 let out = fs.createWriteStream('./02-write-file/text.txt');
 
-let rl = readline.createInterface({
-    input: stdin,
-    output: out,
-});
-console.log('Go some text');
+async function writeFile(out) {
+    let rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+    console.log('Go some text');
 
-rl.on('line', (line) => {
-    if (line === '' || line === 'exit') {
-        console.log('see you soon!');
-        rl.close();
-    } else {
-        out.write(line + '\n');
-    }
-});
+
+    rl.on('close', goodBye)
+    rl.on('line', (line) => {
+        if (line === 'exit') {
+            goodBye()
+        }
+        out.write(`${line}\n`)
+    });
+}
+
+writeFile(out)
+
+function goodBye() {
+    console.log('see you soon!');
+    process.exit(0)
+}
