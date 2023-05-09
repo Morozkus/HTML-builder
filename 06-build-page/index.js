@@ -46,12 +46,12 @@ readFileAsync(htmlPath)
         return str.map(el => el.replace(/\W/gi, ''))
 
     })
-    .then((data) => {
-        return data.forEach((el) => {
-             readFileAsync(path.join(componentsPath, `${el}.html`))
-             .then(data => obj.html = obj.html.replace(`{{${el}}}`, data))
-             .then(() => writeFileAsync(path.resolve(projectFolder, 'index.html'), obj.html))
-         })
+    .then(async (data) => {
+        return await data.forEach((el) => {
+            readFileAsync(path.join(componentsPath, `${el}.html`))
+                .then(data => obj.html = obj.html.replace(`{{${el}}}`, data))
+                .then(() => writeFileAsync(path.resolve(projectFolder, 'index.html'), obj.html))
+        })
     })
 
 const styleFolder = path.resolve(__dirname, 'styles')
@@ -73,39 +73,58 @@ fs.readdir(styleFolder, ((err, files) => {
         if (path.extname(file) !== '.css') return
 
         readFileAsync(path.join(styleFolder, file))
-        .then(data => {
-            fs.appendFile(destFolder, data, () => {
-                return
+            .then(data => {
+                fs.appendFile(destFolder, data, () => {
+                    return
+                })
             })
-        })
 
 
     })
 }))
 
+const assests = path.resolve(__dirname, 'assets')
+const destAssests = path.resolve(__dirname, 'project-dist', 'assets')
 
-async function copyDir(src, dest) {
-    const entries = await FSP.readdir(src, { withFileTypes: true })
-    try {
-        await FSP.mkdir(dest)
-    } catch (error) {
-        error
-    }
-    
+fs.rm(destAssests, { force: true, recursive: true }, () => {
+    return copyFiles(assests, destAssests)
+});
 
-    for (let entry of entries) {
+async function copyFiles(folderPath, copyPath) {
+    fs.access(copyPath, function (err) {
 
-        const srcPath = path.join(src, entry.name)
-        const destPath = path.join(dest, entry.name)
+        if (err && err.code === 'ENOENT') {
 
-        if (entry.isDirectory()) {
-
-            await copyDir(srcPath, destPath)
-        } else {
-
-            await FSP.copyFile(srcPath, destPath)
+            fs.mkdir(copyPath, (err) => {
+                if (err) return console.log(err);
+            });
         }
-    }
-}
+    });
 
-copyDir(path.join(__dirname, 'assets'), path.join(__dirname, 'project-dist', 'assets'))
+    fs.readdir(folderPath, ((err, files) => {
+
+        if (err) {
+
+            return console.log(err.message)
+
+        }
+
+        files.forEach(file => {
+            fs.stat(path.resolve(folderPath, file), (err, stats) => {
+
+                if (err) {
+                    console.error(err)
+                    return
+                }
+
+                if (stats.isDirectory() === true) {
+                    return copyFiles(path.join(folderPath, file), path.join(copyPath, file))
+                } else {
+                    fs.copyFile(path.join(folderPath, file), path.join(copyPath, file), (err) => {
+                        if (err) console.log(err);
+                    })
+                }
+            })
+        })
+    }))
+}
